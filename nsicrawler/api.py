@@ -126,12 +126,36 @@ def __add_all_skus_for_all_devices_in_offer(devices):
     return devices
 
 
-def devices_in_offer(url, segmentation, offer, pages):
+def __add_old_price_info_for_devices_in_offer(offer, devices):
+    """
+    Injects old price elem for all devices in offer
+    """
+    for device in devices:
+        old_price = None
+        prices_repr = check_product_prices(
+            device['product_page_url'],
+            device['sku'],
+            offer['offerNSICode'],
+            offer['tariffPlanCode'],
+            offer['contractConditionCode']
+        )
+        if prices_repr:
+            prices = prices_repr[0].get('pricesTransport', [])
+            for price in prices:
+                if price.get('code') == 'OLD':
+                    old_price = price.get('grossPrice')
+                    break
+        if old_price:
+            device['old_price'] = old_price
+    return devices
+
+
+def devices_in_offer(url, segmentation, offer, page_count):
     """
     Provides json representation of all devices available to buy in offer
     """
     devices = []
-    for page in range(1, pages+1):
+    for page in range(1, page_count+1):
         r = requests.post(
             url,
             data={"processSegmentationCode": segmentation,
@@ -143,6 +167,7 @@ def devices_in_offer(url, segmentation, offer, pages):
         devices = r.json()['devices']
         devices = __add_product_page_to_devices(segmentation, offer, devices)
         devices = __add_all_skus_for_all_devices_in_offer(devices)
+        devices = __add_old_price_info_for_devices_in_offer(offer, devices)
         devices.extend(r.json()['devices'])
     return devices
 
@@ -173,3 +198,17 @@ def check_availability(url, stock_code):
     r = requests.post(url,
                       data={'deviceStockCode': stock_code})
     return r.json()['deviceAvailables'][0]['available']
+
+
+def check_product_prices(url, stock_code, offer_nsi_code,
+                         tariff_plan_code, contract_condition_code):
+    """
+    Return json repr of product prices
+    """
+    r = requests.post(url, data={
+        'deviceStockCode': stock_code,
+        'offerNSICode': offer_nsi_code,
+        'tariffPlanCode': tariff_plan_code,
+        'contract_condition_code': contract_condition_code
+    })
+    return r.json()['devicesPrices']

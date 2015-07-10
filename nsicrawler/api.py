@@ -105,13 +105,13 @@ def __add_product_page_to_devices(segmentation, offer, devices):
     return devices
 
 
-def __find_all_skus_for_device_in_offer(product_page):
+def __find_all_skus_for_device_in_offer(product_page, sku_stock_code):
     """
     Return a list of all sku stock codes for provided product page url
     """
     r = requests.get(url=product_page)
     html = r.content
-    parsed_html = Soup(html)
+    parsed_html = Soup(html,"html.parser")
     skus = parsed_html.find_all('input', attrs={'name': 'color'})
     return [sku['device-skus'] for sku in skus] or [sku_stock_code]
 
@@ -122,18 +122,18 @@ def __add_all_skus_for_all_devices_in_offer(devices):
     """
     for device in devices:
         device['skus'] = __find_all_skus_for_device_in_offer(
-            device['product_page_url'])
+            device['product_page_url'], device['sku'])
     return devices
 
 
-def __add_old_price_info_for_devices_in_offer(offer, devices):
+def __add_old_price_info_for_devices_in_offer(url, offer, devices):
     """
     Injects old price elem for all devices in offer
     """
     for device in devices:
         old_price = None
         prices_repr = check_product_prices(
-            device['product_page_url'],
+            url,
             device['sku'],
             offer['offerNSICode'],
             offer['tariffPlanCode'],
@@ -150,11 +150,12 @@ def __add_old_price_info_for_devices_in_offer(offer, devices):
     return devices
 
 
-def devices_in_offer(url, segmentation, offer, page_count):
+def devices_in_offer(url, segmentation, offer, page_count,
+                     check_price_portlet_url):
     """
     Provides json representation of all devices available to buy in offer
     """
-    devices = []
+    all_devices = []
     for page in range(1, page_count+1):
         r = requests.post(
             url,
@@ -167,9 +168,10 @@ def devices_in_offer(url, segmentation, offer, page_count):
         devices = r.json()['devices']
         devices = __add_product_page_to_devices(segmentation, offer, devices)
         devices = __add_all_skus_for_all_devices_in_offer(devices)
-        devices = __add_old_price_info_for_devices_in_offer(offer, devices)
-        devices.extend(r.json()['devices'])
-    return devices
+        devices = __add_old_price_info_for_devices_in_offer(
+            check_price_portlet_url, offer, devices)
+        all_devices.extend(devices)
+    return all_devices
 
 
 def __add_prefix(url):
@@ -185,7 +187,7 @@ def find_main_photo_for_sku(product_page):
     """
     r = requests.get(product_page)
     html = r.content
-    parsed_html = Soup(html)
+    parsed_html = Soup(html, "html.parser")
     photo_container = parsed_html.find('div', attrs={'id': 'phone-carousel'})
     img = photo_container.find('img')
     return __add_prefix(img.attrs['src'])

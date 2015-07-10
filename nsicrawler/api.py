@@ -209,6 +209,6 @@ def check_product_prices(url, stock_code, offer_nsi_code,
         'deviceStockCode': stock_code,
         'offerNSICode': offer_nsi_code,
         'tariffPlanCode': tariff_plan_code,
-        'contract_condition_code': contract_condition_code
+        'contractConditionCode': contract_condition_code
     })
     return r.json()['devicesPrices']

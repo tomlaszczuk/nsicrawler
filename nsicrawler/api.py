@@ -191,7 +191,9 @@ def find_main_photo_for_sku(product_page):
     parsed_html = Soup(html, "html.parser")
     photo_container = parsed_html.find('div', attrs={'id': 'phone-carousel'})
     img = photo_container.find('img')
-    return __add_prefix(img.attrs['src'])
+    if img:
+        return __add_prefix(img.attrs['src'])
+    return None
 
 
 def check_availability(url, stock_code):

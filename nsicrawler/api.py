@@ -126,7 +126,7 @@ def __add_all_skus_for_all_devices_in_offer(devices):
     return devices
 
 
-def __add_old_price_info_for_devices_in_offer(url, offer, devices):
+def __add_old_price_info_for_devices_in_offer(url, offer, devices, segment):
     """
     Injects old price elem for all devices in offer
     """
@@ -137,7 +137,8 @@ def __add_old_price_info_for_devices_in_offer(url, offer, devices):
             device['sku'],
             offer['offerNSICode'],
             offer['tariffPlanCode'],
-            offer['contractConditionCode']
+            offer['contractConditionCode'],
+            segment
         )
         if prices_repr:
             prices = prices_repr[0].get('pricesTransport', [])
@@ -169,7 +170,7 @@ def devices_in_offer(url, segmentation, offer, page_count,
         devices = __add_product_page_to_devices(segmentation, offer, devices)
         devices = __add_all_skus_for_all_devices_in_offer(devices)
         devices = __add_old_price_info_for_devices_in_offer(
-            check_price_portlet_url, offer, devices)
+            check_price_portlet_url, offer, devices, segmentation)
         all_devices.extend(devices)
     return all_devices
 
@@ -203,7 +204,7 @@ def check_availability(url, stock_code):
 
 
 def check_product_prices(url, stock_code, offer_nsi_code,
-                         tariff_plan_code, contract_condition_code):
+                         tariff_plan_code, contract_condition_code, segment):
     """
     Return json repr of product prices
     """
@@ -211,6 +212,7 @@ def check_product_prices(url, stock_code, offer_nsi_code,
         'deviceStockCode': stock_code,
         'offerNSICode': offer_nsi_code,
         'tariffPlanCode': tariff_plan_code,
-        'contractConditionCode': contract_condition_code
+        'contractConditionCode': contract_condition_code,
+        'processSegmentationCode': segment
     })
     return r.json()['devicesPrices']
